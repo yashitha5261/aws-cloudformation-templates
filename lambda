@@ -1,0 +1,97 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: --- 
+
+Parameters:   
+
+    Prefix:
+      Description: The prefix for all the resources 
+      Type: String
+      Default: slf-infosec-analytics-admin-cdap-
+   
+    LogtypeRegion:
+      Description: "Please mention the region for the log name mentioned above example - na,ind,hkg, etc . 
+                    **IMP NOTE if region is 'na'(North America) please do not mention anything.**"
+      Type: String
+
+    LambdaFunctionRoleArn:
+      Description: Please mention the IAM service role ARN for the lambda function
+      Type: String
+      Default: arn:aws:iam::294805306721:role/slf-infosec-analytics_parseToJSON_role    
+    
+    LogSourceRegion:
+      Description: The Environmental variable value going to the lambda function.
+      Type: String
+
+    S3bucketName:
+      Description: The S3 bucket name where lambda code is stored
+      Type: String
+      Default: slf-ca-nonprod-infosec-analytics                           
+
+    S3keyLambdaCode:
+      Description: The S3 key of the object for lambda code. 
+      Type: String
+      Default: CloudFormation/lambda/Emptycode.zip       
+
+    costCentre:
+      Description: The tag information for the aws service.
+      Type: String
+      Default: "183264"
+
+    primaryOwner:
+      Description:  The tag information for the aws service.
+      Type: String
+      Default: Khilan Jerath
+
+    secondaryOwner:
+      Description: The tag information for the aws service.
+      Type: String
+      Default: Naveen Mangalakumar
+
+Conditions: 
+  logtyperegionvalue: 
+    Fn::Not: [Fn::Equals: ["", !Ref LogtypeRegion]]
+
+Resources: 
+    CloudwatchlogforLambda: 
+      Type: AWS::Logs::LogGroup
+      Properties: 
+        LogGroupName: !Join ["", ["/aws/lambda/", !Ref lambdaFunction]]
+        RetentionInDays: 14
+        Tags: 
+          - Key: cost_centre
+            Value: !Ref costCentre
+          - Key: primary_owner
+            Value: !Ref primaryOwner
+          - Key: secondary_owner
+            Value: !Ref secondaryOwner
+
+    lambdaFunction:
+      Type: AWS::Lambda::Function
+      Properties:
+        # DependsOn: CloudwatchlogforLambda
+        Description: "Lambda Function to parse raw records to json format."
+        FunctionName: !Join ["", [ !Ref Prefix, "test1"]]
+        Handler: !Join ["", ["Emptycode",".lambda_handler"]]
+        MemorySize: 128
+        Role: !Ref LambdaFunctionRoleArn
+        Runtime:  python3.8
+        Timeout: 900
+        Environment:
+          Variables:
+            FAILED_BUCKET_NAME: !Ref S3bucketName          
+        Code:
+          S3Bucket: !Ref S3bucketName
+          S3Key: !Ref S3keyLambdaCode   
+        VpcConfig:
+          SecurityGroupIds:
+            - sg-0c07b668e781804b3
+          SubnetIds:
+            - subnet-074bdff472cae86c3
+            - subnet-07aead09d1728798e    
+        Tags:
+          - Key: cost_centre
+            Value: !Ref costCentre
+          - Key: primary_owner
+            Value: !Ref primaryOwner
+          - Key: secondary_owner
+            Value: !Ref secondaryOwner
